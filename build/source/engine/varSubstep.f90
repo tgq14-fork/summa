@@ -204,6 +204,8 @@ contains
  real(rkind)                        :: sumSenHeatCanopy              ! sum of sensible heat flux from the canopy to the canopy air space (W m-2)
  real(rkind)                        :: sumSoilCompress
  real(rkind),allocatable            :: sumLayerCompress(:)
+ ! WK-print
+ !real(rkind) :: balanceSoilWater0
  ! ---------------------------------------------------------------------------------------
  ! point to variables in the data structures
  ! ---------------------------------------------------------------------------------------
@@ -396,6 +398,14 @@ contains
   ! identify the need to check the mass balance
   checkMassBalance = .true. ! (.not.scalarSolution)
 
+  ! WK-print
+  !balanceSoilWater0 = sum(prog_data%var(iLookPROG%mLayerVolFracLiq)%dat(nSnow+1:nSoil+nSnow)*prog_data%var(iLookPROG%mLayerDepth)%dat(nSnow+1:nSoil+nSnow)*iden_water) + sum(prog_data%var(iLookPROG%mLayerVolFracIce)%dat(nSnow+1:nSoil+nSnow)*prog_data%var(iLookPROG%mLayerDepth)%dat(nSnow+1:nSoil+nSnow)*iden_water)
+  !print*,' -- in varSubstep (before updateProg) --'
+  !print*,'dt                               = ', dt
+  !print*,'soilBalance0                     = ', balanceSoilWater0
+  !print*,'iLayerLiqFluxSoil                = ', flux_temp%var(iLookFLUX%iLayerLiqFluxSoil)%dat
+
+
   ! update prognostic variables
   call updateProg(dtSubstep,nSnow,nSoil,nLayers,doAdjustTemp,computeVegFlux,untappedMelt,stateVecTrial,checkMassBalance, & ! input: model control
                   mpar_data,indx_data,flux_temp,prog_data,diag_data,deriv_data,                                          & ! input-output: data structures
@@ -404,6 +414,11 @@ contains
    message=trim(message)//trim(cmessage)
    if(err>0) return
   endif
+  
+  ! WK-print
+  !print*,'-- in varSubstep (after updateProg) --'
+  !print*,'iLayerLiqFluxSoil         (data) = ', flux_temp%var(iLookFLUX%iLayerLiqFluxSoil)%dat
+  !print*,'iLayerLiqFluxSoil*rho*dt  (data) = ', flux_temp%var(iLookFLUX%iLayerLiqFluxSoil)%dat    *iden_water*dtSubstep
 
   ! if water balance error then reduce the length of the coupled step
   if(waterBalanceError .or. tooMuchMelt)then
@@ -514,6 +529,21 @@ contains
 
   ! adjust length of the sub-step (make sure that we don't exceed the step)
   dtSubstep = min(dt - dtSum, max(dtSubstep*dtMultiplier, dt_min) )
+  
+    ! WK-print
+  !print*,'  - end of varSubstep; after updateProg -'
+  !print*,'dtSubstep                        = ',dtSubstep 
+  !print*,'new scalarTotalSoilLiq           = ', sum(prog_data%var(iLookPROG%mLayerVolFracLiq)%dat(nSnow+1:nSoil+nSnow)*prog_data%var(iLookPROG%mLayerDepth)%dat(nSnow+1:nSoil+nSnow)*iden_water)
+  !print*,'new scalarTotalSoilIce           = ', sum(prog_data%var(iLookPROG%mLayerVolFracIce)%dat(nSnow+1:nSoil+nSnow)*prog_data%var(iLookPROG%mLayerDepth)%dat(nSnow+1:nSoil+nSnow)*iden_water)
+  !print*,'soilBalance1                     = ', sum(prog_data%var(iLookPROG%mLayerVolFracLiq)%dat(nSnow+1:nSoil+nSnow)*prog_data%var(iLookPROG%mLayerDepth)%dat(nSnow+1:nSoil+nSnow)*iden_water) + sum(prog_data%var(iLookPROG%mLayerVolFracIce)%dat(nSnow+1:nSoil+nSnow)*prog_data%var(iLookPROG%mLayerDepth)%dat(nSnow+1:nSoil+nSnow)*iden_water)
+  !print*,'scalarSoilCompress               = ', diag_data%var(iLookDIAG%scalarSoilCompress)%dat(1)
+  !print*,'scalarInfiltration        (data) = ', flux_data%var(iLookFLUX%scalarInfiltration)%dat(1)*iden_water*dtSubstep
+  !print*,'iLayerLiqFluxSoil         (data) = ', flux_data%var(iLookFLUX%iLayerLiqFluxSoil)%dat    *iden_water*dtSubstep
+  !print*,'scalarSoilBaseflow        (data) = ', flux_data%var(iLookFLUX%scalarSoilBaseflow)%dat(1)*iden_water*dtSubstep
+  !print*,'scalarSoilDrainage        (data) = ', flux_data%var(iLookFLUX%scalarSoilDrainage)%dat(1)*iden_water*dtSubstep
+  !print*,'scalarCanopyTranspiration (data) = ', flux_data%var(iLookFLUX%scalarCanopyTranspiration)%dat(1)*iden_water*dtSubstep
+  !print*,'scalarGroundEvaporation   (data) = ', flux_data%var(iLookFLUX%scalarGroundEvaporation)  %dat(1)*iden_water*dtSubstep
+  !print*,'soil water balance error         = ', (sum(prog_data%var(iLookPROG%mLayerVolFracLiq)%dat(nSnow+1:nSoil+nSnow)*prog_data%var(iLookPROG%mLayerDepth)%dat(nSnow+1:nSoil+nSnow)*iden_water) + sum(prog_data%var(iLookPROG%mLayerVolFracIce)%dat(nSnow+1:nSoil+nSnow)*prog_data%var(iLookPROG%mLayerDepth)%dat(nSnow+1:nSoil+nSnow)*iden_water)) - (balanceSoilWater0 + (flux_data%var(iLookFLUX%scalarInfiltration)%dat(1)*iden_water*dtSubstep + flux_data%var(iLookFLUX%scalarCanopyTranspiration)%dat(1)*iden_water*dtSubstep + flux_data%var(iLookFLUX%scalarGroundEvaporation)%dat(1)*iden_water*dtSubstep - flux_data%var(iLookFLUX%scalarSoilBaseflow)%dat(1)*iden_water*dtSubstep - flux_data%var(iLookFLUX%scalarSoilDrainage)%dat(1)*iden_water*dtSubstep - diag_data%var(iLookDIAG%scalarSoilCompress)%dat(1)) )
 
  end do substeps  ! time steps for variable-dependent sub-stepping
 
@@ -537,7 +567,7 @@ contains
  if(failedMinimumStep)then
   err=-20 ! negative = recoverable error
   message=trim(message)//'failed minimum step'
- endif
+ endif 
 
  end subroutine varSubstep
 
@@ -665,6 +695,10 @@ contains
  ! get storage at the start of the step
  canopyBalance0 = merge(scalarCanopyWat, realMissing, computeVegFlux)
  soilBalance0   = sum( (mLayerVolFracLiq(nSnow+1:nLayers)  + mLayerVolFracIce(nSnow+1:nLayers)  )*mLayerDepth(nSnow+1:nLayers) )
+ 
+ ! WK-print
+ !print*,'- start of updateProg -'
+ !print*,'iLayerLiqFluxSoil = ',iLayerLiqFluxSoil
 
  ! -----
  ! * update states...
@@ -811,15 +845,17 @@ contains
    compSink     = sum(mLayerCompress(1:nSoil) * mLayerDepth(nSnow+1:nLayers) ) ! dimensionless --> m
    liqError     = soilBalance1 - (soilBalance0 + vertFlux + tranSink - baseSink - compSink)
    if(abs(liqError) > absConvTol_liquid*10._rkind)then   ! *10 because of precision issues
-    !write(*,'(a,1x,f20.10)') 'dt = ', dt
-    !write(*,'(a,1x,f20.10)') 'soilBalance0      = ', soilBalance0
-    !write(*,'(a,1x,f20.10)') 'soilBalance1      = ', soilBalance1
-    !write(*,'(a,1x,f20.10)') 'vertFlux          = ', vertFlux
-    !write(*,'(a,1x,f20.10)') 'tranSink          = ', tranSink
-    !write(*,'(a,1x,f20.10)') 'baseSink          = ', baseSink
-    !write(*,'(a,1x,f20.10)') 'compSink          = ', compSink
-    !write(*,'(a,1x,f20.10)') 'liqError          = ', liqError
-    !write(*,'(a,1x,f20.10)') 'absConvTol_liquid = ', absConvTol_liquid
+    print*,'- end of updateProg -'
+	print*,'iLayerLiqFluxSoil =', iLayerLiqFluxSoil
+    write(*,'(a,1x,f20.10)') 'dt = ', dt
+    write(*,'(a,1x,f20.10)') 'soilBalance0      = ', soilBalance0
+    write(*,'(a,1x,f20.10)') 'soilBalance1      = ', soilBalance1
+    write(*,'(a,1x,f20.10)') 'vertFlux          = ', vertFlux
+    write(*,'(a,1x,f20.10)') 'tranSink          = ', tranSink
+    write(*,'(a,1x,f20.10)') 'baseSink          = ', baseSink
+    write(*,'(a,1x,f20.10)') 'compSink          = ', compSink
+    write(*,'(a,1x,f20.10)') 'liqError          = ', liqError
+    write(*,'(a,1x,f20.10)') 'absConvTol_liquid = ', absConvTol_liquid
     waterBalanceError = .true.
     return
    endif  ! if there is a water balance error

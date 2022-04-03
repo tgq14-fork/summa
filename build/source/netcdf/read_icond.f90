@@ -30,7 +30,7 @@ public::read_icond_nlayers
 ! define single HRU restart file
 integer(i4b), parameter :: singleHRU=1001
 integer(i4b), parameter :: multiHRU=1002
-integer(i4b), parameter :: restartFileType=multiHRU
+integer(i4b), parameter :: restartFileType=singleHRU
 contains
 
  ! ************************************************************************************************
@@ -77,6 +77,8 @@ contains
  message = 'read_icond_nlayers/'
 
  ! open netcdf file
+ ! Wk-print
+ !print*, 'reading restart file ',iconFile
  call nc_file_open(iconFile,nf90_nowrite,ncid,err,cmessage);
  if (err/=0) then; message=trim(message)//trim(cmessage); return; end if
 
@@ -84,6 +86,10 @@ contains
  err = nf90_inq_dimid(ncID,"hru",dimId);               if(err/=nf90_noerr)then; message=trim(message)//'problem finding hru dimension/'//trim(nf90_strerror(err)); return; end if
  err = nf90_inquire_dimension(ncID,dimId,len=fileHRU); if(err/=nf90_noerr)then; message=trim(message)//'problem reading hru dimension/'//trim(nf90_strerror(err)); return; end if
 
+ ! Wk-print
+ !print*, 'expecting nGru = ',nGRU
+ !print*, 'found nHru = ',fileHRU
+ 
  ! allocate storage for reading from file (allocate entire file size, even when doing subdomain run)
  allocate(snowData(fileHRU))
  allocate(soilData(fileHRU))
@@ -97,6 +103,10 @@ contains
  ! get nSnow and nSoil data (reads entire state file)
  err = nf90_get_var(ncid,snowid,snowData); call netcdf_err(err,message)
  err = nf90_get_var(ncid,soilid,soilData); call netcdf_err(err,message)
+
+ ! Wk-print
+ !print*, 'snowData (nSnow) = ',snowData
+ !print*, 'soilData (nSoil) = ',soilData
 
  ixHRUfile_min=huge(1)
  ixHRUfile_max=0
@@ -112,17 +122,29 @@ contains
  do iGRU = 1,nGRU
   do iHRU = 1,gru_struc(iGRU)%hruCount
    iHRU_global = gru_struc(iGRU)%hruInfo(iHRU)%hru_nc
+   
+   ! Wk-print
+   !print*, 'iHRU_global = ',iHRU_global
 
    ! single HRU (Note: 'restartFileType' is hardwired above to multiHRU)
    if(restartFileType==singleHRU) then
+    ! Wk-print
+	!print*, 'reading single HRU restart'
     gru_struc(iGRU)%hruInfo(iHRU)%nSnow = snowData(1)
     gru_struc(iGRU)%hruInfo(iHRU)%nSoil = soilData(1)
 
    ! multi HRU
    else
+   ! Wk-print
+	!print*, 'reading multi HRU restart'
     gru_struc(iGRU)%hruInfo(iHRU)%nSnow = snowData(iHRU_global)
     gru_struc(iGRU)%hruInfo(iHRU)%nSoil = soilData(iHRU_global)
    endif
+   
+   ! Wk-print
+   !print*, 'In read_icond()'
+   !print*, 'nSnow = ', gru_struc(iGRU)%hruInfo(iHRU)%nSnow
+   !print*, 'nSoil = ', gru_struc(iGRU)%hruInfo(iHRU)%nSoil
 
   end do
  end do

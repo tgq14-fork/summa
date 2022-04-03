@@ -61,8 +61,8 @@ MODULE globalData
  ! ----------------------------------------------------------------------------------------------------------------
 
  ! define missing values
- real(rkind),parameter,public                   :: quadMissing    = nr_quadMissing    ! (from nrtype) missing quadruple precision number
- real(rkind),parameter,public                   :: realMissing    = nr_realMissing    ! (from nrtype) missing double precision number
+ real(rk),parameter,public                   :: quadMissing    = nr_quadMissing    ! (from nrtype) missing quadruple precision number
+ real(rk),parameter,public                   :: realMissing    = nr_realMissing    ! (from nrtype) missing double precision number
  integer(i4b),parameter,public               :: integerMissing = nr_integerMissing ! (from nrtype) missing integer
 
  ! define run modes
@@ -166,11 +166,11 @@ MODULE globalData
  integer(i4b),parameter,public               :: iJac2=20                ! last layer of the Jacobian to print
 
  ! define limit checks
- real(rkind),parameter,public                   :: verySmall=tiny(1.0_rkind)  ! a very small number
- real(rkind),parameter,public                   :: veryBig=1.e+20_rkind       ! a very big number
+ real(rk),parameter,public                   :: verySmall=tiny(1.0_rk)  ! a very small number
+ real(rk),parameter,public                   :: veryBig=1.e+20_rk       ! a very big number
 
  ! define algorithmic control parameters
- real(rkind),parameter,public                   :: dx = 1.e-8_rkind           ! finite difference increment
+ real(rk),parameter,public                   :: dx = 1.e-8_rk           ! finite difference increment
 
  ! define summary information on all data structures
  integer(i4b),parameter                      :: nStruct=13              ! number of data structures
@@ -198,7 +198,7 @@ MODULE globalData
  ! ----------------------------------------------------------------------------------------------------------------
 
  ! define Indian bread (NaN)
- real(rkind),save,public                        :: dNaN
+ real(rk),save,public                        :: dNaN
 
  ! define default parameter values and parameter bounds
  type(par_info),save,public                  :: localParFallback(maxvarMpar) ! local column default parameters
@@ -209,7 +209,7 @@ MODULE globalData
  type(var_info),save,public                  :: forc_meta(maxvarForc)        ! model forcing data
  type(var_info),save,public                  :: attr_meta(maxvarAttr)        ! local attributes
  type(var_info),save,public                  :: type_meta(maxvarType)        ! local classification of veg, soil, etc.
- type(var_info),save,public                  :: id_meta(maxvarId)            ! local classification of veg, soil, etc.
+ type(var_info),save,public                  :: id_meta(maxvarId)        ! local classification of veg, soil, etc.
  type(var_info),save,public                  :: mpar_meta(maxvarMpar)        ! local model parameters for each HRU
  type(var_info),save,public                  :: indx_meta(maxvarIndx)        ! local model indices for each HRU
  type(var_info),save,public                  :: prog_meta(maxvarProg)        ! local state variables for each HRU
@@ -264,7 +264,7 @@ MODULE globalData
  type(hru2gru_map),allocatable,save,public   :: index_map(:)                      ! hru2gru map
 
  ! define variables used for the vegetation phenology
- real(rkind),dimension(12), save     , public   :: greenVegFrac_monthly              ! fraction of green vegetation in each month (0-1)
+ real(rk),dimension(12), save     , public   :: greenVegFrac_monthly              ! fraction of green vegetation in each month (0-1)
 
  ! define the model output file
  character(len=256),save,public              :: fileout=''                        ! output filename
@@ -291,13 +291,13 @@ MODULE globalData
  integer(i4b),save,public                    :: numtim                      ! number of time steps
  integer(i4b),save,public                    :: nHRUrun                     ! number of HRUs in the run domain
  integer(i4b),save,public                    :: nGRUrun                     ! number of GRUs in the run domain
- real(rkind),save,public                        :: data_step                   ! time step of the data
- real(rkind),save,public                        :: refJulday                   ! reference time in fractional julian days
- real(rkind),save,public                        :: refJulday_data              ! reference time in fractional julian days (data files)
- real(rkind),save,public                        :: fracJulday                  ! fractional julian days since the start of year
- real(rkind),save,public                        :: dJulianStart                ! julian day of start time of simulation
- real(rkind),save,public                        :: dJulianFinsh                ! julian day of end time of simulation
- real(rkind),save,public                        :: tmZoneOffsetFracDay         ! time zone offset in fractional days
+ real(rk),save,public                        :: data_step                   ! time step of the data
+ real(rk),save,public                        :: refJulday                   ! reference time in fractional julian days
+ real(rk),save,public                        :: refJulday_data              ! reference time in fractional julian days (data files)
+ real(rk),save,public                        :: fracJulday                  ! fractional julian days since the start of year
+ real(rk),save,public                        :: dJulianStart                ! julian day of start time of simulation
+ real(rk),save,public                        :: dJulianFinsh                ! julian day of end time of simulation
+ real(rk),save,public                        :: tmZoneOffsetFracDay         ! time zone offset in fractional days
  integer(i4b),save,public                    :: nHRUfile                    ! number of HRUs in the file
  integer(i4b),save,public                    :: yearLength                  ! number of days in the current year
  integer(i4b),save,public                    :: urbanVegCategory            ! vegetation category for urban areas
@@ -305,7 +305,6 @@ MODULE globalData
  logical(lgt),save,public                    :: globalPrintFlag=.false.     ! flag to compute the Jacobian
  integer(i4b),save,public                    :: chunksize=1024              ! chunk size for the netcdf read/write
  integer(i4b),save,public                    :: outputPrecision=nf90_double ! variable type
- integer(i4b),save,public                    :: outputCompressionLevel=4             ! output netcdf file deflate level: 0-9. 0 is no compression.
 
  ! define result from the time calls
  integer(i4b),dimension(8),save,public       :: startInit,endInit       ! date/time for the start and end of the initialization
@@ -316,12 +315,12 @@ MODULE globalData
  integer(i4b),dimension(8),save,public       :: startPhysics,endPhysics ! date/time for the start and end of the physics
 
  ! define elapsed time
- real(rkind),save,public                        :: elapsedInit             ! elapsed time for the initialization
- real(rkind),save,public                        :: elapsedSetup            ! elapsed time for the parameter setup
- real(rkind),save,public                        :: elapsedRestart          ! elapsed time to read restart data
- real(rkind),save,public                        :: elapsedRead             ! elapsed time for the data read
- real(rkind),save,public                        :: elapsedWrite            ! elapsed time for the stats/write
- real(rkind),save,public                        :: elapsedPhysics          ! elapsed time for the physics
+ real(rk),save,public                        :: elapsedInit             ! elapsed time for the initialization
+ real(rk),save,public                        :: elapsedSetup            ! elapsed time for the parameter setup
+ real(rk),save,public                        :: elapsedRestart          ! elapsed time to read restart data
+ real(rk),save,public                        :: elapsedRead             ! elapsed time for the data read
+ real(rk),save,public                        :: elapsedWrite            ! elapsed time for the stats/write
+ real(rk),save,public                        :: elapsedPhysics          ! elapsed time for the physics
 
  ! define ancillary data structures
  type(var_i),save,public                     :: startTime               ! start time for the model simulation
@@ -332,14 +331,14 @@ MODULE globalData
  ! output file information
  logical(lgt),dimension(maxvarFreq),save,public :: outFreq              ! true if the output frequency is desired
  integer(i4b),dimension(maxvarFreq),save,public :: ncid                 ! netcdf output file id
-
+ 
  ! look-up values for the choice of the time zone information (formerly in modelDecisions module)
  integer(i4b),parameter,public               :: ncTime=1                ! time zone information from NetCDF file (timeOffset = longitude/15. - ncTimeOffset)
  integer(i4b),parameter,public               :: utcTime=2               ! all times in UTC (timeOffset = longitude/15. hours)
  integer(i4b),parameter,public               :: localTime=3             ! all times local (timeOffset = 0)
-
+ 
  ! define fixed dimensions
  integer(i4b),parameter,public               :: nBand=2          ! number of spectral bands
- integer(i4b),parameter,public               :: nTimeDelay=2000  ! number of time steps in the time delay histogram (default: ~1 season = 24*365/4)
+ integer(i4b),parameter,public               :: nTimeDelay=2000  ! number of hours in the time delay histogram (default: ~1 season = 24*365/4)
 
 END MODULE globalData

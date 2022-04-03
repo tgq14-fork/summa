@@ -57,8 +57,9 @@ integer(i4b),parameter,public :: minFunc              =  62    ! do not enable c
 integer(i4b),parameter,public :: constantScaling      =  71    ! constant scaling factor
 integer(i4b),parameter,public :: laiScaling           =  72    ! exponential function of LAI (Leuning, Plant Cell Env 1995: "Scaling from..." [eq 9])
 ! look-up values for the choice of numerical method
-integer(i4b),parameter,public :: bEuler               =  81    ! home-grown backward Euler solution with long time steps
-integer(i4b),parameter,public :: sundials             =  82    ! SUNDIALS/IDA solution
+integer(i4b),parameter,public :: iterative            =  81    ! iterative
+integer(i4b),parameter,public :: nonIterative         =  82    ! non-iterative
+integer(i4b),parameter,public :: iterSurfEnergyBal    =  83    ! iterate only on the surface energy balance
 ! look-up values for method used to compute derivative
 integer(i4b),parameter,public :: numerical            =  91    ! numerical solution
 integer(i4b),parameter,public :: analytical           =  92    ! analytical solution
@@ -186,7 +187,7 @@ contains
  character(*),intent(out)             :: message        ! error message
  ! define local variables
  character(len=256)                   :: cmessage       ! error message for downwind routine
- real(rkind)                             :: dsec,dsec_tz   ! second
+ real(rk)                             :: dsec,dsec_tz   ! second
  ! initialize error control
  err=0; message='mDecisions/'
 
@@ -220,7 +221,7 @@ contains
                  refTime%var(iLookTIME%id),                             & ! day
                  refTime%var(iLookTIME%ih),                             & ! hour
                  refTime%var(iLookTIME%imin),                           & ! minute
-                 0._rkind,                                                 & ! second
+                 0._rk,                                                 & ! second
                  refJulday,                                             & ! julian date for the start of the simulation
                  err, cmessage)                                           ! error control
  if(err/=0)then; err=20; message=trim(message)//trim(cmessage); return; end if
@@ -246,7 +247,7 @@ contains
                  startTime%var(iLookTIME%id),                           & ! day
                  startTime%var(iLookTIME%ih),                           & ! hour
                  startTime%var(iLookTIME%imin),                         & ! minute
-                 0._rkind,                                                 & ! second
+                 0._rk,                                                 & ! second
                  dJulianStart,                                          & ! julian date for the start of the simulation
                  err, cmessage)                                           ! error control
  if(err/=0)then; err=20; message=trim(message)//trim(cmessage); return; end if
@@ -272,7 +273,7 @@ contains
                  finshTime%var(iLookTIME%id),                           & ! day
                  finshTime%var(iLookTIME%ih),                           & ! hour
                  finshTime%var(iLookTIME%imin),                         & ! minute
-                 0._rkind,                                                 & ! second
+                 0._rk,                                                 & ! second
                  dJulianFinsh,                                          & ! julian date for the end of the simulation
                  err, cmessage)                                           ! error control
  if(err/=0)then; err=20; message=trim(message)//trim(cmessage); return; end if
@@ -396,9 +397,9 @@ contains
 
  ! identify the numerical method
  select case(trim(model_decisions(iLookDECISIONS%num_method)%cDecision))
-  case('bEuler'   ); model_decisions(iLookDECISIONS%num_method)%iDecision = bEuler             ! home-grown backward Euler solution with long time steps
-  case('itertive' ); model_decisions(iLookDECISIONS%num_method)%iDecision = bEuler             ! home-grown backward Euler solution (included for backwards compatibility)
-  case('sundials' ); model_decisions(iLookDECISIONS%num_method)%iDecision = sundials           ! SUNDIALS/IDA solution
+  case('itertive'); model_decisions(iLookDECISIONS%num_method)%iDecision = iterative           ! iterative
+  case('non_iter'); model_decisions(iLookDECISIONS%num_method)%iDecision = nonIterative        ! non-iterative
+  case('itersurf'); model_decisions(iLookDECISIONS%num_method)%iDecision = iterSurfEnergyBal   ! iterate only on the surface energy balance
   case default
    err=10; message=trim(message)//"unknown numerical method [option="//trim(model_decisions(iLookDECISIONS%num_method)%cDecision)//"]"; return
  end select

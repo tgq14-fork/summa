@@ -80,18 +80,17 @@ contains
  integer(i4b)                           :: iHRU          ! loop index
 
  ! temporary variables for realism checks
- integer(i4b)                   :: iLayer                ! index of model layer
- integer(i4b)                   :: iSoil                 ! index of soil layer
- real(rkind)                    :: fLiq                  ! fraction of liquid water on the vegetation canopy (-)
- real(rkind)                    :: vGn_m                 ! van Genutchen "m" parameter (-)
- real(rkind)                    :: tWat                  ! total water on the vegetation canopy (kg m-2)
- real(rkind)                    :: scalarTheta           ! liquid water equivalent of total water [liquid water + ice] (-)
- real(rkind)                    :: h1,h2                 ! used to check depth and height are consistent
- integer(i4b)                   :: nLayers               ! total number of layers
- real(rkind)                    :: kappa                 ! constant in the freezing curve function (m K-1)
- integer(i4b)                   :: nSnow                 ! number of snow layers
- real(rkind),parameter          :: xTol=1.e-10_rkind     ! small tolerance to address precision issues
- real(rkind),parameter          :: canIceTol=1.e-3_rkind ! small tolerance to allow existence of canopy ice for above-freezing temperatures (kg m-2)
+ integer(i4b)                      :: iLayer             ! index of model layer
+ integer(i4b)                      :: iSoil              ! index of soil layer
+ real(rk)                          :: fLiq               ! fraction of liquid water on the vegetation canopy (-)
+ real(rk)                          :: vGn_m              ! van Genutchen "m" parameter (-)
+ real(rk)                          :: tWat               ! total water on the vegetation canopy (kg m-2)
+ real(rk)                          :: scalarTheta        ! liquid water equivalent of total water [liquid water + ice] (-)
+ real(rk)                          :: h1,h2              ! used to check depth and height are consistent
+ integer(i4b)                      :: nLayers            ! total number of layers
+ real(rk)                          :: kappa              ! constant in the freezing curve function (m K-1)
+ integer(i4b)                      :: nSnow              ! number of snow layers
+ real(rk),parameter                :: xTol=1.e-10_rk     ! small tolerance to address precision issues
  ! --------------------------------------------------------------------------------------------------------
 
  ! Start procedure here
@@ -149,15 +148,15 @@ contains
    ! compute the constant in the freezing curve function (m K-1)
    kappa  = (iden_ice/iden_water)*(LH_fus/(gravity*Tfreeze))  ! NOTE: J = kg m2 s-2
 
-   ! check canopy ice content for unrealistic situations
-   if(scalarCanopyIce > canIceTol .and. scalarCanopyTemp > Tfreeze)then
-    ! ice content > threshold, terminate run
-    write(message,'(A,E22.16,A,E9.3,A,F7.3,A,F7.3,A)') trim(message)//'canopy ice (=',scalarCanopyIce,') > canIceTol (=',canIceTol,') when canopy temperature (=',scalarCanopyTemp,') > Tfreeze (=',Tfreeze,')'
+   ! modify the liquid water and ice in the canopy
+   if(scalarCanopyIce > 0._rk .and. scalarCanopyTemp > Tfreeze)then
+    message=trim(message)//'canopy ice > 0 when canopy temperature > Tfreeze'
     err=20; return
-   else if(scalarCanopyIce > 0._rkind .and. scalarCanopyTemp > Tfreeze)then
-    ! if here, ice content < threshold. Could be sublimation on previous timestep or simply wrong input. Print a warning
-	write(*,'(A,E22.16,A,F7.3,A,F7.3,A)') 'Warning: canopy ice content in restart file (=',scalarCanopyIce,') > 0 when canopy temperature (=',scalarCanopyTemp,') > Tfreeze (=',Tfreeze,'). Continuing.',NEW_LINE('a')
    end if
+   fLiq = fracliquid(scalarCanopyTemp,snowfrz_scale)  ! fraction of liquid water (-)
+   tWat = scalarCanopyLiq + scalarCanopyIce           ! total water (kg m-2)
+   scalarCanopyLiq = fLiq*tWat                        ! mass of liquid water on the canopy (kg m-2)
+   scalarCanopyIce = (1._rk - fLiq)*tWat              ! mass of ice on the canopy (kg m-2)
 
    ! number of layers
    nLayers = gru_struc(iGRU)%hruInfo(iHRU)%nSnow + gru_struc(iGRU)%hruInfo(iHRU)%nSoil
@@ -169,7 +168,7 @@ contains
     ! compute liquid water equivalent of total water (liquid plus ice)
     if (iLayer>nSnow) then ! soil layer = no volume expansion
      iSoil       = iLayer - nSnow
-     vGn_m       = 1._rkind - 1._rkind/vGn_n(iSoil)
+     vGn_m       = 1._rk - 1._rk/vGn_n(iSoil)
      scalarTheta = mLayerVolFracIce(iLayer) + mLayerVolFracLiq(iLayer)
     else ! snow layer = volume expansion allowed
      iSoil       = integerMissing
@@ -185,14 +184,14 @@ contains
      ! ***** snow
      case(iname_snow)
       ! (check liquid water)
-      if(mLayerVolFracLiq(iLayer) < 0._rkind)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of liquid water < 0: layer = ',iLayer; err=20; return; end if
-      if(mLayerVolFracLiq(iLayer) > 1._rkind)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of liquid water > 1: layer = ',iLayer; err=20; return; end if
+      if(mLayerVolFracLiq(iLayer) < 0._rk)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of liquid water < 0: layer = ',iLayer; err=20; return; end if
+      if(mLayerVolFracLiq(iLayer) > 1._rk)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of liquid water > 1: layer = ',iLayer; err=20; return; end if
       ! (check ice)
-      if(mLayerVolFracIce(iLayer) > 0.80_rkind)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of ice > 0.80: layer = ',iLayer; err=20; return; end if
-      if(mLayerVolFracIce(iLayer) < 0.05_rkind)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of ice < 0.05: layer = ',iLayer; err=20; return; end if
+      if(mLayerVolFracIce(iLayer) > 0.80_rk)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of ice > 0.80: layer = ',iLayer; err=20; return; end if
+      if(mLayerVolFracIce(iLayer) < 0.05_rk)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of ice < 0.05: layer = ',iLayer; err=20; return; end if
       ! check total water
-      if(scalarTheta > 0.80_rkind)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with total water fraction [liquid + ice] > 0.80: layer = ',iLayer; err=20; return; end if
-      if(scalarTheta < 0.05_rkind)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with total water fraction [liquid + ice] < 0.05: layer = ',iLayer; err=20; return; end if
+      if(scalarTheta > 0.80_rk)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with total water fraction [liquid + ice] > 0.80: layer = ',iLayer; err=20; return; end if
+      if(scalarTheta < 0.05_rk)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with total water fraction [liquid + ice] < 0.05: layer = ',iLayer; err=20; return; end if
 
      ! ***** soil
      case(iname_soil)
@@ -201,7 +200,7 @@ contains
       if(mLayerVolFracLiq(iLayer) < theta_res(iSoil)-xTol)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of liquid water < theta_res: layer = ',iLayer; err=20; return; end if
       if(mLayerVolFracLiq(iLayer) > theta_sat(iSoil)+xTol)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of liquid water > theta_sat: layer = ',iLayer; err=20; return; end if
       ! (check ice)
-      if(mLayerVolFracIce(iLayer) < 0._rkind                )then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of ice < 0: layer = '        ,iLayer; err=20; return; end if
+      if(mLayerVolFracIce(iLayer) < 0._rk                )then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of ice < 0: layer = '        ,iLayer; err=20; return; end if
       if(mLayerVolFracIce(iLayer) > theta_sat(iSoil)+xTol)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with volumetric fraction of ice > theta_sat: layer = ',iLayer; err=20; return; end if
       ! check total water
       if(scalarTheta < theta_res(iSoil)-xTol)then; write(message,'(a,1x,i0)') trim(message)//'cannot initialize the model with total water fraction [liquid + ice] < theta_res: layer = ',iLayer; err=20; return; end if
@@ -274,8 +273,8 @@ contains
    do iLayer=1,nLayers
     h1 = sum(progData%gru(iGRU)%hru(iHRU)%var(iLookPROG%mLayerDepth)%dat(1:iLayer)) ! sum of the depths up to the current layer
     h2 = progData%gru(iGRU)%hru(iHRU)%var(iLookPROG%iLayerHeight)%dat(iLayer) - progData%gru(iGRU)%hru(iHRU)%var(iLookPROG%iLayerHeight)%dat(0)  ! difference between snow-atm interface and bottom of layer
-    if(abs(h1 - h2) > 1.e-6_rkind)then
-     write(message,'(a,1x,i0,a,f5.3,a,f5.3)') trim(message)//'mis-match between layer depth and layer height; layer = ', iLayer, '; sum depths = ',h1,'; height = ',h2
+    if(abs(h1 - h2) > 1.e-6_rk)then
+     write(message,'(a,1x,i0)') trim(message)//'mis-match between layer depth and layer height; layer = ', iLayer, '; sum depths = ',h1,'; height = ',h2
      err=20; return
     end if
    end do

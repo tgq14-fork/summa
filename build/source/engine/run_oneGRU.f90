@@ -103,7 +103,7 @@ contains
 
  ! model control
  type(gru2hru_map)   , intent(inout) :: gruInfo              ! HRU information for given GRU (# HRUs, #snow+soil layers) 
- real(rk)            , intent(inout) :: dt_init(:)           ! used to initialize the length of the sub-step for each HRU
+ real(dp)            , intent(inout) :: dt_init(:)           ! used to initialize the length of the sub-step for each HRU
  integer(i4b)        , intent(inout) :: ixComputeVegFlux(:)  ! flag to indicate if we are computing fluxes over vegetation (false=no, true=yes)
  ! data structures (input)
  integer(i4b)        , intent(in)    :: timeVec(:)           ! integer vector      -- model time data
@@ -131,26 +131,26 @@ contains
  integer(i4b)                            :: nSnow                  ! number of snow layers
  integer(i4b)                            :: nSoil                  ! number of soil layers
  integer(i4b)                            :: nLayers                ! total number of layers
- real(rk)                                :: fracHRU                ! fractional area of a given HRU (-)
+ real(dp)                                :: fracHRU                ! fractional area of a given HRU (-)
  logical(lgt)                            :: computeVegFluxFlag     ! flag to indicate if we are computing fluxes over vegetation (.false. means veg is buried with snow)
 
  ! initialize error control
- err=0; write(message, '(A24,I0,A2)' ) 'run_oneGRU (gru index = ',gruInfo%gru_nc,')/'
+ err=0; message='run_oneGRU/'
 
  ! ----- basin initialization --------------------------------------------------------------------------------------------
 
  ! initialize runoff variables
- bvarData%var(iLookBVAR%basin__SurfaceRunoff)%dat(1)    = 0._rk  ! surface runoff (m s-1)
- bvarData%var(iLookBVAR%basin__ColumnOutflow)%dat(1)    = 0._rk  ! outflow from all "outlet" HRUs (those with no downstream HRU)
+ bvarData%var(iLookBVAR%basin__SurfaceRunoff)%dat(1)    = 0._dp  ! surface runoff (m s-1)
+ bvarData%var(iLookBVAR%basin__ColumnOutflow)%dat(1)    = 0._dp  ! outflow from all "outlet" HRUs (those with no downstream HRU)
 
  ! initialize baseflow variables
- bvarData%var(iLookBVAR%basin__AquiferRecharge)%dat(1)  = 0._rk ! recharge to the aquifer (m s-1)
- bvarData%var(iLookBVAR%basin__AquiferBaseflow)%dat(1)  = 0._rk ! baseflow from the aquifer (m s-1)
- bvarData%var(iLookBVAR%basin__AquiferTranspire)%dat(1) = 0._rk ! transpiration loss from the aquifer (m s-1)
+ bvarData%var(iLookBVAR%basin__AquiferRecharge)%dat(1)  = 0._dp ! recharge to the aquifer (m s-1)
+ bvarData%var(iLookBVAR%basin__AquiferBaseflow)%dat(1)  = 0._dp ! baseflow from the aquifer (m s-1)
+ bvarData%var(iLookBVAR%basin__AquiferTranspire)%dat(1) = 0._dp ! transpiration loss from the aquifer (m s-1)
 
  ! initialize total inflow for each layer in a soil column
  do iHRU=1,gruInfo%hruCount
-  fluxHRU%hru(iHRU)%var(iLookFLUX%mLayerColumnInflow)%dat(:) = 0._rk
+  fluxHRU%hru(iHRU)%var(iLookFLUX%mLayerColumnInflow)%dat(:) = 0._dp
  end do
 
  ! ***********************************************************************************************************************
@@ -194,7 +194,7 @@ contains
                   ! error control
                   err,cmessage)                      ! intent(out):   error control
   if(err/=0)then; err=20; message=trim(message)//trim(cmessage); return; endif
- 
+
   ! update layer numbers that could be changed in run_oneHRU -- needed for model output
   gruInfo%hruInfo(iHRU)%nSnow = nSnow
   gruInfo%hruInfo(iHRU)%nSoil = nSoil
